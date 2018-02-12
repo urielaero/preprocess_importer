@@ -4,10 +4,6 @@ defmodule PreprocessImporterTest do
 
   @config %{
     main_key: "organización",
-    area: %{
-      table: "kaluz_organizacion_areas",
-      type: "insert_if_not_exists"
-    },
     table: "kaluz_organizaciones",
     from: PreprocessImporter.From.Csv,
     to: PreprocessImporter.To.Sql
@@ -39,4 +35,30 @@ defmodule PreprocessImporterTest do
     assert generated =~ expected2
     assert generated =~ expected3
   end
+
+  test "should format config" do
+    config = Map.put(@config, :fields, %{
+      area: %{
+        type: "assoc",
+        table: "kaluz_organizacion_areas",
+        field: "name"
+      }
+    })
+    expected = Map.put(config, :ignore, [:area])
+    assert PreprocessImporter.process_config(config) == expected
+  end
+
+  test "should extract and create separate assoc" do
+    config = Map.put(@config, :fields, %{
+      "area" => %{
+        table: "kaluz_organizacion_areas",
+        field: "name",
+        type: "assoc"
+      }
+    })
+    generated = PreprocessImporter.generate("test/fixtures/kaluz_prueba_orgs.csv", config)
+    assert generated =~ "WITH upsert as (UPDATE kaluz_organizacion_areas SET  (name) = ('Sociedad civil') where name='Sociedad civil' RETURNING *) INSERT INTO kaluz_organizacion_areas (name) SELECT 'Sociedad civil' WHERE NOT EXISTS (SELECT * FROM upsert);"
+    assert generated =~ "WITH upsert as (UPDATE kaluz_organizaciones SET  (organización) = ('Reconstruyendo México') where organización='Reconstruyendo México' RETURNING *) INSERT INTO kaluz_organizaciones (organización) SELECT 'Reconstruyendo México' WHERE NOT EXISTS (SELECT * FROM upsert);"
+  end
+
 end

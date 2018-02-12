@@ -9,11 +9,13 @@ defmodule PreprocessImporter do
   """
 
   def generate(filename, config) do
+    cf = process_config(config)
     g = filename
-    |> config.from.parse!(config)
-    |> do_generate(config)
+    |> config.from.parse!(cf)
+    |> do_generate(cf)
     |> Enum.to_list()
-    "#{merge_with(g, :process)}\n#{merge_with(g, :func)}"
+    pre = generate_from_assocs(filename, config)
+    pre <> "#{merge_with(g, :process)}\n#{merge_with(g, :func)}"
   end
 
   defp do_generate(data, config) do
@@ -33,13 +35,13 @@ defmodule PreprocessImporter do
   end
 
   defp update_lists(config, key, map, acc) do
-        exists = Map.put(acc.exists, key, true)
-        data = [map | acc.data]
-        g = config.to.generate(map, config)
-        process = [g | acc.process]
-        f = config.to.generate_post_func(map, config[:post_execute])
-        func = [f | acc.func]
-        %{acc | exists: exists, data: data, process: process, func: func}
+    exists = Map.put(acc.exists, key, true)
+    data = [map | acc.data]
+    g = config.to.generate(map, config)
+    process = [g | acc.process]
+    f = config.to.generate_post_func(map, config[:post_execute])
+    func = [f | acc.func]
+    %{acc | exists: exists, data: data, process: process, func: func}
   end
 
   defp merge_with([], _key_name), do: ""
@@ -52,5 +54,44 @@ defmodule PreprocessImporter do
   defp merge([p|tail]) when p == "", do: "#{merge(tail)}"
   defp merge([p|tail]),
     do: "#{p};\n#{merge(tail)}"
+
+  def process_config(config) do
+    ignore = Map.get(config, :ignore, [])
+    fields = config
+    |> Map.get(:fields, %{})
+    |> Enum.to_list()
+    ig = ignore ++ ignore_fields(fields)
+    Map.put(config, :ignore, ig)
+  end
+
+  defp generate_from_assocs(filename, %{fields: fields} = config) do
+    fields
+    |> Enum.to_list()
+    |> do_generate_from_assocs(filename, config)
+  end
+  defp generate_from_assocs(_filename, _cfg), do: ""
+
+  defp do_generate_from_assocs([], _filename, _config), do: ""
+  defp do_generate_from_assocs([{key, %{type: type} = field} | tail], filename, config) when type == "assoc" do
+    config_assoc = %{
+      main_key: key,
+      table: field.table,
+      from: config.from,
+      to: config.to,
+      only: ["#{key}"],
+      main_key_alias: field.field
+    }
+    generate(filename, config_assoc) <> do_generate_from_assocs(tail, filename, config)
+  end
+  defp do_generate_from_assocs([_field | tail], filename, config), do: do_generate_from_assocs(tail, filename, config)
+
+
+  @ignore_list ["assoc"]
+
+  defp ignore_fields([]), do: []
+  defp ignore_fields([{key, %{type: type}}|tail]) when type in @ignore_list do
+    [key|ignore_fields(tail)]
+  end
+  defp ignore_fields([_value|tail]), do: ignore_fields(tail)
 
 end

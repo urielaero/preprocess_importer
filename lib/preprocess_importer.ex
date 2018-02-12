@@ -39,7 +39,7 @@ defmodule PreprocessImporter do
     data = [map | acc.data]
     g = config.to.generate(map, config)
     process = [g | acc.process]
-    f = config.to.generate_post_func(map, config[:post_execute])
+    f = config.to.generate_post_func(map, config)
     func = [f | acc.func]
     %{acc | exists: exists, data: data, process: process, func: func}
   end

@@ -11,7 +11,8 @@ defmodule PreprocessImporter.To.SqlTest do
 
   @config %{
     main_key: :key,
-    table: :table_keys
+    table: :table_keys,
+    to: Sql
   }
 
   @config_ignore Map.put(@config, :ignore, [:key1])
@@ -25,31 +26,13 @@ defmodule PreprocessImporter.To.SqlTest do
 
   test "should parse string for postgres" do
     text = ~s(baby's on fire)
-    assert Sql.unquoted_postgres(text) == ~s('baby''s on fire')
+    assert Sql.unquoted_value(text) == ~s('baby''s on fire')
   end
 
-  test "should generate comman separate keys from map" do
-    {keys, values} = Sql.format_keys(@map, @config)
-    assert keys == "key, key1, key2"
-    assert values == "'main', 'one', 'tre'"
-  end
-
-  test "should ignore field in generate comman separate keys from map" do
-    {keys, values} = Sql.format_keys(@map, @config_ignore)
-    assert keys == "key, key2"
-    assert values == "'main', 'tre'"
-  end
-
-  test "should only parse field if only is set in generate comman separate keys from map" do
-    {keys, values} = Sql.format_keys(@map, @config_only)
-    assert keys == "key"
-    assert values == "'main'"
-  end
-
-  test "should change main_key for alias if main_key_alias is set" do
-    {keys, values} = Sql.format_keys(@map, @config_main_key_alias)
-    assert keys == "name, key1, key2"
-    assert values == "'main', 'one', 'tre'"
+  test "should generate list keys and values from map with postgres scape" do
+    {keys, values} = PreprocessImporter.To.format_keys(@map, @config)
+    assert keys == ["key", "key1", "key2"]
+    assert values == ["'main'", "'one'", "'tre'"]
   end
 
   test "should generate sql statement with upsert" do
@@ -73,8 +56,10 @@ defmodule PreprocessImporter.To.SqlTest do
 
   test "should generate post_exec function from config" do
     config = @config
-    |> Map.put(:func, :run_post_func)
-    |> Map.put(:func_params, [:key])
+    |> Map.put(:post_execute, %{
+      func: :run_post_func,
+      func_params: [:key]
+    })
     expected = "run_post_func('main')";
     assert Sql.generate_post_func(@map, config) == expected
   end

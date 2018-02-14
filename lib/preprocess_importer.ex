@@ -8,14 +8,14 @@ defmodule PreprocessImporter do
 
   """
 
-  def generate(filename, config) do
+  def generate(config) do
     cf = process_config(config)
-    g = filename
+    filename = config.filename
     |> config.from.parse!(cf)
     |> do_generate(cf)
     |> Enum.to_list()
-    pre = generate_from_assocs(filename, config)
-    pre <> "#{merge_with(g, :process)}\n#{merge_with(g, :func)}"
+    pre = generate_from_assocs(config)
+    pre <> "#{merge_with(filename, :process)}\n#{merge_with(filename, :func)}"
   end
 
   defp do_generate(data, config) do
@@ -64,33 +64,34 @@ defmodule PreprocessImporter do
     Map.put(config, :ignore, ig)
   end
 
-  defp generate_from_assocs(filename, %{fields: fields} = config) do
+  defp generate_from_assocs(%{fields: fields} = config) do
     fields
     |> Enum.to_list()
-    |> do_generate_from_assocs(filename, config)
+    |> do_generate_from_assocs(config)
   end
-  defp generate_from_assocs(_filename, _cfg), do: ""
+  defp generate_from_assocs(_cfg), do: ""
 
-  defp do_generate_from_assocs([], _filename, _config), do: ""
-  defp do_generate_from_assocs([{key, %{type: type} = field} | tail], filename, config) when type == "assoc" do
+  defp do_generate_from_assocs([], _config), do: ""
+  defp do_generate_from_assocs([{key, %{type: type} = field} | tail], config) when type == "assoc" do
     config_assoc = %{
-      main_key: key,
+      main_key: "#{key}",
       table: field.table,
       from: config.from,
       to: config.to,
       only: ["#{key}"],
-      main_key_alias: field.field
+      main_key_alias: field.field,
+      filename: config.filename
     }
-    generate(filename, config_assoc) <> do_generate_from_assocs(tail, filename, config)
+    generate(config_assoc) <> do_generate_from_assocs(tail, config)
   end
-  defp do_generate_from_assocs([_field | tail], filename, config), do: do_generate_from_assocs(tail, filename, config)
+  defp do_generate_from_assocs([_field | tail], config), do: do_generate_from_assocs(tail, config)
 
 
   @ignore_list ["assoc"]
 
   defp ignore_fields([]), do: []
   defp ignore_fields([{key, %{type: type}}|tail]) when type in @ignore_list do
-    [key|ignore_fields(tail)]
+    ["#{key}"|ignore_fields(tail)]
   end
   defp ignore_fields([_value|tail]), do: ignore_fields(tail)
 

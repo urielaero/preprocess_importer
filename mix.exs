@@ -4,6 +4,7 @@ defmodule PreprocessImporter.Mixfile do
   def project do
     [
       app: :preprocess_importer,
+      escript: escript(),
       version: "0.1.0",
       elixir: "~> 1.5",
       start_permanent: Mix.env == :prod,
@@ -24,5 +25,9 @@ defmodule PreprocessImporter.Mixfile do
     {:csv, "~> 2.0.0"},
     {:flow, "~> 0.13"},
     {:jason, "~> 1.0"}]
+  end
+
+  defp escript do
+    [main_module: PreprocessImporter.Cli]
   end
 end

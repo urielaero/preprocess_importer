@@ -1,0 +1,7 @@
+{
+  "main_key": "organización",
+  "table": "kaluz_organizaciones",
+  "to": "sql",
+  "from": "csv",
+  "filename": "test/fixtures/kaluz_prueba_orgs.csv"
+}

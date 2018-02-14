@@ -23,7 +23,7 @@ defmodule PreprocessImporterTest do
 
   test "should generate post execute sql from csv file" do
     config = Map.put(@config, :post_execute, %{
-      func: "run_psql_func",
+      func: "run_psql_func($0, $1)",
       func_params: ["organización", "area"]
     })
     expected_with = "WITH upsert as (UPDATE kaluz_organizaciones SET  (area, organización) = ('Sociedad civil', 'Reconstruyendo México') where organización='Reconstruyendo México' RETURNING *) INSERT INTO kaluz_organizaciones (area, organización) SELECT 'Sociedad civil', 'Reconstruyendo México' WHERE NOT EXISTS (SELECT * FROM upsert);"

@@ -57,7 +57,7 @@ defmodule PreprocessImporter.To.SqlTest do
   test "should generate post_exec function from config" do
     config = @config
     |> Map.put(:post_execute, %{
-      func: :run_post_func,
+      func: "run_post_func($0)",
       func_params: [:key]
     })
     expected = "run_post_func('main')";

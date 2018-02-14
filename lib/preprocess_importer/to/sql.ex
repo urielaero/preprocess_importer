@@ -11,9 +11,11 @@ defmodule PreprocessImporter.To.Sql do
   end
 
   def generate_post_func(map, %{post_execute: %{func_params: func_params, func: func}} = config) do
-    params = To.values_from_map(func_params, map, config)
-    |> Enum.join(", ")
-    "#{func}(#{params})"
+    {_, str} = To.values_from_map(func_params, map, config)
+            |> Enum.reduce({0, func}, fn (v, {n, str})->
+              {n+1, String.replace(str, "$#{n}", v)}
+            end)
+    str
   end
   def generate_post_func(_map, _config), do: ""
 

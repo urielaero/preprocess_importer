@@ -9,6 +9,8 @@ defmodule PreprocessImporter.To.SqlTest do
     key2: "tre"
   }
 
+  @map_w_null Map.put(@map, :key3, "null")
+
   @config %{
     main_key: :key,
     table: :table_keys,
@@ -25,8 +27,7 @@ defmodule PreprocessImporter.To.SqlTest do
   @expected  ~s(WITH upsert as (UPDATE table_keys SET  (key, key1, key2\) = ('main', 'one', 'tre'\) where key='main' RETURNING *\) INSERT INTO table_keys (key, key1, key2\) SELECT 'main', 'one', 'tre' WHERE NOT EXISTS (SELECT * FROM upsert\))
 
   test "should parse string for postgres" do
-    text = ~s(baby's on fire)
-    assert Sql.unquoted_value(text) == ~s('baby''s on fire')
+    assert Sql.unquoted_value(~s(baby's on fire )) == ~s('baby''s on fire')
   end
 
   test "should generate list keys and values from map with postgres scape" do
@@ -35,8 +36,19 @@ defmodule PreprocessImporter.To.SqlTest do
     assert values == ["'main'", "'one'", "'tre'"]
   end
 
+  test "should generate list keys and values with null value from map with postgres scape" do
+    {keys, values} = PreprocessImporter.To.format_keys(@map_w_null, @config)
+    assert keys == ["key", "key1", "key2", "key3"]
+    assert values == ["'main'", "'one'", "'tre'", "null"]
+  end
+
   test "should generate sql statement with upsert" do
     assert Sql.generate(@map, @config) == @expected
+  end
+
+  test "should generate sql statement with upsert and null values" do
+    assert Sql.generate(@map_w_null, @config) == ~s(WITH upsert as (UPDATE table_keys SET  (key, key1, key2, key3\) = ('main', 'one', 'tre', null\) where key='main' RETURNING *\) INSERT INTO table_keys (key, key1, key2, key3\) SELECT 'main', 'one', 'tre', null WHERE NOT EXISTS (SELECT * FROM upsert\))
+
   end
 
   test "should ignore fields with ignore flag in upsert" do

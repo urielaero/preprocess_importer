@@ -19,8 +19,9 @@ defmodule PreprocessImporter.To.Sql do
   end
   def generate_post_func(_map, _config), do: ""
 
+  def unquoted_value("null"), do: "null"
   def unquoted_value(value) do
-    "'#{String.replace(value, "'", "''")}'"
+    "'#{String.trim(value) |> String.replace("'", "''")}'"
   end
 
 end
